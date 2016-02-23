@@ -1,9 +1,15 @@
+from base64 import b64decode
 from urlparse import parse_qs
 import logging
-
+import boto3
 from models import Memeifier, Memegen, parse_text_into_params
 
-EXPECTED_TOKEN = "jya1AnM8fsgEMjJNqwBTn5sW"
+# Fill this value with the output of
+# aws kms encrypt --key-id alias/<KMS key name> --plaintext "<COMMAND_TOKEN>"
+ENCRYPTED_EXPECTED_TOKEN = 'CiDSIjVflQrv9Xm9Wqre38Q2YylLgz6FAR9FNIC7tty9exKfAQEBAgB40iI1X5UK7/V5vVqq3t/ENmMpS4M+hQEfRTSAu7bcvXsAAAB2MHQGCSqGSIb3DQEHBqBnMGUCAQAwYAYJKoZIhvcNAQcBMB4GCWCGSAFlAwQBLjARBAyzRvh61K40fup8aR0CARCAM29rz7iflTDZAweZlH7GyP2lVNXe4Ccw3j3CIK0JNscrPuFNJ1LTgtz95sW3jSd2qmJ9sg=='
+
+kms = boto3.client('kms')
+expected_token = kms.decrypt(CiphertextBlob = b64decode(ENCRYPTED_EXPECTED_TOKEN))['Plaintext']
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -13,7 +19,7 @@ def lambda_handler(event, context):
     params = parse_qs(req_body)
     logger.info(params)
     token = params['token'][0]
-    if token != EXPECTED_TOKEN:
+    if token != expected_token:
         logger.error("Request token (%s) does not match exptected", token)
         raise Exception("Invalid request token")
 
